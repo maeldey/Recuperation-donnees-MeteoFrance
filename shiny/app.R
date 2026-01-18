@@ -7,6 +7,7 @@
 #    https://shiny.posit.co/
 #
 
+
 # List of required packages ----------------------------------------------------
 required_packages <- c("tidyverse", 
                        "sf", 
@@ -30,7 +31,7 @@ library(bslib)
 # SIM2 data : points location import -------------------------------------------
 
 # Points location import
-sim2_points <- recuperation_points_de_grille_SAFRAN() 
+sim2_points <- recuperation_points_de_grille_SAFRAN()
 
 
 # User chose one or several points to import data from the user interface
@@ -51,12 +52,14 @@ ui <- page_sidebar(
     ),
     # Display selected points
     br("Identifiant du point sélectionné : "),
-    verbatimTextOutput("clicked_id"), # Export points
+    verbatimTextOutput("clicked_id"), 
+    # Export points
     actionLink(inputId = 'download_points', label = 'Télécharger les points de gille SAFRAN')
   ), 
   # Main panel
   card(
-    # Explaination text
+    full_screen = TRUE,
+    # Explanation text
     tags$p(
       paste0(
         "Zoomez et sélectionnez le ou les points de grille ",
@@ -64,9 +67,7 @@ ui <- page_sidebar(
       )
     ),
     # Map
-    leafletOutput("map"),
-    # Data
-    DTOutput("table")
+    leafletOutput("map", height = "100%")
   )
 )
 
@@ -81,23 +82,29 @@ server <- function(input, output, session) {
       addTiles() %>%
       # Change background to OpenTopoMap
       addProviderTiles(providers$OpenTopoMap) %>%
-      # Change points style
-      addCircleMarkers(
+      # DIsplay polygons
+      addPolygons(
         layerId = ~ID,
-        stroke = FALSE,
-        fillOpacity = 1,
+        stroke = TRUE,
+        opacity = 1,
+        fillColor = input$color,
+        fillOpacity = 0.3,
         color = input$color
       )
   })
   
-  # Get points clicked id
-  observeEvent(input$map_marker_click, {
+  # Update on click
+  # Saving locally selected cells
+  selected_id <- reactiveVal(NULL)
+  
+  observeEvent(input$map_shape_click, {
     # Save data of the point
-    click <- input$map_marker_click
-    # Print its id
-    output$clicked_id <- renderPrint({
-      paste(as.character(click$id))
-    })
+    selected_id(input$map_shape_click$id)
+  })
+  
+  # Print their id
+  output$clicked_id <- renderPrint({
+    paste(selected_id())
   })
 }
 
